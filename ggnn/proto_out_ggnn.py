@@ -41,7 +41,7 @@ datasets = ['babi']
 vertexs = {'cora': 2708, 'citeseer': 3327, 'pubmed': 19717, 'ppi': 56944, 'reddit': 232965, 'babi': 8000}
 v_feature = {'cora': 1433, 'citeseer': 3703, 'pubmed': 500, 'ppi': 50, 'reddit': 602, 'babi': 40}
 nclasses = {'cora': 7, 'citeseer': 6, 'pubmed': 3, 'ppi': 121, 'reddit': 41}
-edges = {'cora': 10556, 'citeseer': 9228, 'pubmed': 88651, 'ppi': 889362, 'reddit': 114615892, 'babi': 4000}
+edges = {'cora': 10556, 'citeseer': 9228, 'pubmed': 88651, 'ppi': 889362, 'reddit': 114615892, 'babi': -4000}
 corenames = ['unicore', 'dualcore']
 cores = range(0, 4)
 
