@@ -38,17 +38,23 @@ args['vp_core_num'] = 2 ###
 
 modes = ['TEST', 'TRAIN']
 datasets = ['babi']
-vertexs = {'cora': 2708, 'citeseer': 3327, 'pubmed': 19717, 'ppi': 56944, 'reddit': 232965, 'babi': 8}
+vertexs = {'cora': 2708, 'citeseer': 3327, 'pubmed': 19717, 'ppi': 56944, 'reddit': 232965, 'babi': 8000}
 v_feature = {'cora': 1433, 'citeseer': 3703, 'pubmed': 500, 'ppi': 50, 'reddit': 602, 'babi': 40}
 nclasses = {'cora': 7, 'citeseer': 6, 'pubmed': 3, 'ppi': 121, 'reddit': 41}
-edges = {'cora': 10556, 'citeseer': 9228, 'pubmed': 88651, 'ppi': 889362, 'reddit': 114615892, 'babi': 15}
+edges = {'cora': 10556, 'citeseer': 9228, 'pubmed': 88651, 'ppi': 889362, 'reddit': 114615892, 'babi': 4000}
 corenames = ['unicore', 'dualcore']
 cores = range(0, 4)
 
-agg_types = ['WeightedSum']
+agg_types = ['Sum']
 algo = 'ggnn'
 
 def main():
+    args['nd'] = 256
+    args['kd'] = 1
+    args['md'] = 256
+    args['m1_in_buf'] = 1 
+    args['m2_in_buf'] = 1 
+    args['out_in_buf'] = 1 
     hidden_dim = 40 
     edgetypes = 2
     op = op_hd() 
@@ -70,59 +76,75 @@ def main():
                     last = 0
                     first = 1
                     
-                    for layer in range(2):
+                    for layer in range(1):
                         for i in range(4):
-                            args['vertex_feature_len'] = v_feature[dataset] if first else hidden_dim
-                            args['weight_input_num'] = v_feature[dataset] if first else hidden_dim
-                            args['weight_output_num'] = hidden_dim
-                            args['fusing_active'] = 0
-                            args['active_func'] = 'Softmax' if last else 'ReLU'##
+                            args['n'] = args['vertex_num']
+                            args['k'] = hidden_dim  
+                            args['m'] = hidden_dim
                             args['fusing_last_task'] = 0 ###
                             args['fusing_next_task'] = 0 ###
                             args['split_core'] = is_split & (args['fusing_last_task'] | args['fusing_next_task'])###
-                            out += op.VertexFeatureMultWeight(**args)
+                            out += op.MMM(**args)
                         first = 0
 
-                        args['vertex_unit_len'] = args['weight_output_num'] ##
-                        args['edge_file'] = '"bin_edges/edges.'+dataset+'.fea'+str(args['vertex_unit_len'])+'.bin"'
-                        args['agg_type'] = agg_type ##
-                        args['fusing_active'] = 0
-                        args['active_func'] = 'Softmax' if last else 'ReLU'##
-                        args['fusing_last_task'] = 0 ###
-                        args['fusing_next_task'] = 1 ###
-                        args['split_core'] = is_split & (args['fusing_last_task'] | args['fusing_next_task'])###
-                        out += op.EdgeAggregation(**args)
+                        for i in range(2*edgetypes):
+                            args['vertex_unit_len'] = args['m'] ##
+                            args['edge_file'] = '"bin_edges/edges.'+dataset+'.fea'+str(args['vertex_unit_len'])+'.bin"'
+                            args['agg_type'] = agg_type ##
+                            args['fusing_active'] = 0
+                            args['active_func'] = 'Softmax' if last else 'ReLU'##
+                            args['fusing_last_task'] = 0 ###
+                            args['fusing_next_task'] = 1 ###
+                            args['split_core'] = is_split & (args['fusing_last_task'] | args['fusing_next_task'])###
+                            out += op.EdgeAggregation(**args)
 
-                        args['vertex_feature_len'] = v_feature[dataset] if first else args['weight_output_num']
-                        args['weight_input_num'] = v_feature[dataset] if first else args['weight_output_num']
-                        args['weight_output_num'] = nclasses[dataset] if last else out_dim 
-                        args['fusing_active'] = 1
-                        args['active_func'] = 'Softmax' if last else 'ReLU'##
-                        args['fusing_last_task'] = 1 ###
-                        args['fusing_next_task'] = 0 ###
-                        args['split_core'] = is_split & (args['fusing_last_task'] | args['fusing_next_task'])###
-                        out += op.VertexFeatureMultWeight(**args)
+                            args['n'] = args['vertex_num']
+                            args['k'] = hidden_dim  
+                            args['m'] = 3*hidden_dim #update, reset, transform
+                            args['fusing_last_task'] = 1 ###
+                            args['fusing_next_task'] = 0 ###
+                            args['split_core'] = is_split & (args['fusing_last_task'] | args['fusing_next_task'])###
+                            out += op.MMM(**args)
 
-                        args['vertex_feature_len'] = v_feature[dataset] if layer==0 else out_dim*2
-                        args['weight_input_num'] = v_feature[dataset] if layer==0 else out_dim*2
-                        args['weight_output_num'] = nclasses[dataset] if last else out_dim 
-                        args['fusing_active'] = 1
-                        args['active_func'] = 'Softmax' if last else 'ReLU'##
-                        args['fusing_last_task'] = 0 ###
-                        args['fusing_next_task'] = 0 ###
-                        args['split_core'] = is_split & (args['fusing_last_task'] | args['fusing_next_task'])###
-                        out += op.VertexFeatureMultWeight(**args)
+                        for i in range(3):#update, reset, transform
+                            args['n'] = args['vertex_num']
+                            args['k'] = hidden_dim  
+                            args['m'] = hidden_dim #update, reset, transform
+                            args['fusing_last_task'] = 0 ###
+                            args['fusing_next_task'] = 0 ###
+                            args['split_core'] = is_split & (args['fusing_last_task'] | args['fusing_next_task'])###
+                            out += op.MMM(**args)
 
-                    last = 1
-                    args['vertex_feature_len'] = v_feature[dataset] if first else out_dim*2
-                    args['weight_input_num'] = v_feature[dataset] if first else out_dim*2
-                    args['weight_output_num'] = nclasses[dataset] if last else out_dim 
-                    args['fusing_active'] = 1
-                    args['active_func'] = 'Softmax' if last else 'ReLU'##
-                    args['fusing_last_task'] = 0 ###
-                    args['fusing_next_task'] = 0 ###
-                    args['split_core'] = is_split & (args['fusing_last_task'] | args['fusing_next_task'])###
-                    out += op.VertexFeatureMultWeight(**args)
+                        for i in range(edgetypes): #aggregate
+                            args['n'] = args['vertex_num']*hidden_dim
+                            args['nd'] = 256
+                            args['v1_in_buf'] = 1
+                            args['v2_in_buf'] = 1
+                            args['out_in_buf'] = 1
+                            out += op.VV(**args)
+
+                        for i in range(6): #concat
+                            args['n'] = args['vertex_num']*hidden_dim
+                            args['nd'] = 256
+                            args['v1_in_buf'] = 1
+                            args['v2_in_buf'] = 1
+                            args['out_in_buf'] = 1
+                            out += op.VV(**args)
+
+                        for i in range(4): #update, reset, 1-, transform
+                            args['n'] = args['vertex_num']*hidden_dim
+                            args['nd'] = 256
+                            args['v_in_buf'] = 1
+                            args['out_in_buf'] = 0 if i == 7 else 1
+                            out += op.V(**args)
+
+                        for i in range(4): #mul, mul, mul, +
+                            args['n'] = args['vertex_num']*hidden_dim
+                            args['nd'] = 256
+                            args['v1_in_buf'] = 1
+                            args['v2_in_buf'] = 1
+                            args['out_in_buf'] = 0 if i == 3 else 1
+                            out += op.VV(**args)
 
                     name = description.replace('"','')+'.pt'
                     with open(name,'w') as file_obj:

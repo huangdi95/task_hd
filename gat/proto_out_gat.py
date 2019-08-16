@@ -96,17 +96,17 @@ def main():
 
                     if out_heads[dataset] != 1:
                         for i in range(out_heads[dataset]-1):
-                            args['n'] = nclasses[dataset]*vertexs[dataset];
-                            args['nd'] = 1024;
-                            args['v1_in_buf'] = 0;
-                            args['v2_in_buf'] = 1;
-                            args['out_in_buf'] = 1;
+                            args['n'] = nclasses[dataset]*vertexs[dataset]
+                            args['nd'] = 1024
+                            args['v1_in_buf'] = 0
+                            args['v2_in_buf'] = 1
+                            args['out_in_buf'] = 1
                             out += op.VV(**args)
                         for i in range(3):
-                            args['n'] = nclasses[dataset]*vertexs[dataset];
-                            args['nd'] = 1024;
-                            args['v_in_buf'] = 1;
-                            args['out_in_buf'] = 0 if i == 2 else 1;
+                            args['n'] = nclasses[dataset]*vertexs[dataset]
+                            args['nd'] = 1024
+                            args['v_in_buf'] = 1
+                            args['out_in_buf'] = 0 if i == 2 else 1
                             out += op.V(**args)
                             
                     name = description.replace('"','')+'.pt'
