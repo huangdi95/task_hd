@@ -5,10 +5,14 @@ class op_hd():
         self.id = 0
         self.update_count = 0
         self.agg_count = 0
+        self.v_count = 0
+        self.vv_count = 0
     def clean_id(self):
         self.id = 0
         self.update_count = 0
         self.agg_count = 0
+        self.v_count = 0
+        self.vv_count = 0
     def VertexFeatureMultWeight(self, **args):
         args['task_name'] = '"aggregate_'+str(self.update_count)+'"'
         args['id'] = str(self.id) 
@@ -82,3 +86,59 @@ task {{\n\
         self.id += 1
         return out
 
+    def V(self, **args):
+        args['task_name'] = '"v_'+str(self.v_count)+'"'
+        args['id'] = str(self.id) 
+        out = \
+'\n\
+task {{\n\
+  id: {id}\n\
+  task_type: "V"\n\
+  task_name: {task_name}\n\
+  v_param{{\n\
+    n = {n};\n\
+    nd = {nd};\n\
+    v_in_buf = {v_in_buf};\n\
+    out_in_buf = {out_in_buf};\n\
+  }}\n\
+  compt_efficiency: {compt_efficiency}\n\
+  mem_efficiency: {mem_efficiency}\n\
+  split_core: {split_core} ### \n\
+  ep_core_num: {ep_core_num} ###\n\
+  vp_core_num: {vp_core_num} ###\n\
+  fusing_last_task: {fusing_last_task} ###\n\
+  fusing_next_task: {fusing_next_task} ###\n\
+}}\n\
+    '.format(**args)
+        self.v_count+=1
+        self.id += 1
+        return out
+
+    def VV(self, **args):
+        args['task_name'] = '"vv_'+str(self.vv_count)+'"'
+        args['id'] = str(self.id) 
+        out = \
+'\n\
+task {{\n\
+  id: {id}\n\
+  task_type: "VV"\n\
+  task_name: {task_name}\n\
+  vv_param{{\n\
+    n = {n};\n\
+    nd = {nd};\n\
+    v1_in_buf = {v1_in_buf};\n\
+    v2_in_buf = {v2_in_buf};\n\
+    out_in_buf = {out_in_buf};\n\
+  }}\n\
+  compt_efficiency: {compt_efficiency}\n\
+  mem_efficiency: {mem_efficiency}\n\
+  split_core: {split_core} ### \n\
+  ep_core_num: {ep_core_num} ###\n\
+  vp_core_num: {vp_core_num} ###\n\
+  fusing_last_task: {fusing_last_task} ###\n\
+  fusing_next_task: {fusing_next_task} ###\n\
+}}\n\
+    '.format(**args)
+        self.vv_count+=1
+        self.id += 1
+        return out
